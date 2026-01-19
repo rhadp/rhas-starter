@@ -1,0 +1,24 @@
+# This is a simpler example showing
+# - how to add custom rpms and containers
+# - how to set the root password
+
+name: simple
+
+content:
+  repos:
+    - id: epel
+      baseurl: https://dl.fedoraproject.org/pub/epel/9/Everything/$arch/
+
+  rpms:
+    - openssh-server
+    
+  systemd:
+    enabled_services:
+      # Enable ssh daemon
+      - sshd.service
+  #    # Enable the dlt daemon
+  #    - dlt
+
+auth:
+  # "password"
+  root_password: $6$xoLqEUz0cGGJRx01$H3H/bFm0myJPULNMtbSsOFd/2BnHqHkMD92Sfxd.EKM9hXTWSmELG8cf205l6dktomuTcgKGGtGDgtvHVXSWU.

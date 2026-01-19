@@ -1,0 +1,21 @@
+schemaVersion: 2.3.0
+metadata:
+  name: rhas-starter
+  tags:
+    - rhas
+    - rhivos
+    - jumpstarter
+    - autosd
+components:
+  - name: runtime
+    container:
+      image: ghcr.io/rhadp/codespaces:latest
+      memoryLimit: "4Gi"
+      memoryRequest: "1Gi"
+      cpuLimit: "4"
+      cpuRequest: "1"
+      mountSources: true
+      # environment variables
+      #env:
+      #  - name: FOO
+      #    value: "bar"
