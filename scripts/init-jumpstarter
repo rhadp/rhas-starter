@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NAMESPACE=auto-jumpstarter
+USER_NAME=`cat /config/user/profile/name`
+
+# generate jumpstarter user config
+mkdir -p /home/user/.config/jumpstarter/clients
+
+cat > /home/user/.config/jumpstarter/config.yaml <<EOF
+apiVersion: jumpstarter.dev/v1alpha1
+kind: UserConfig
+config:
+  current-client: default
+EOF
+
+CLIENT_NAME="${USER_NAME/@/-}-default"
+if oc get client "$CLIENT_NAME" -n $NAMESPACE &>/dev/null; then
+  oc delete client "$CLIENT_NAME" -n $NAMESPACE || true
+fi
+
+# generate jumpstarter client config
+jmp admin create client --insecure-tls-config --unsafe --nointeractive --save -n $NAMESPACE --out /home/user/.config/jumpstarter/clients/default.yaml $CLIENT_NAME
