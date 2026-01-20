@@ -1,0 +1,139 @@
+name: Reusable container build
+
+on:
+  workflow_call:
+    inputs:
+      container_name:
+        description: 'Name of the container to build'
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.version.outputs.is_release }}
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: get version
+        id: version
+        run: |
+          if git describe --tags --exact-match HEAD 2>/dev/null; then
+            VERSION=$(git describe --tags --exact-match HEAD)
+            IS_RELEASE=true
+          elif git describe --tags 2>/dev/null; then
+            VERSION=$(git describe --tags)
+            IS_RELEASE=false
+          else
+            VERSION="$(git rev-parse --short HEAD)"
+            IS_RELEASE=false
+          fi
+          VERSION=${VERSION#v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            suffix: arm64
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: login to RH registry
+        uses: docker/login-action@v3
+        with:
+          registry: "registry.redhat.io"
+          username: ${{ secrets.RH_ACCOUNT_USERNAME }}
+          password: ${{ secrets.RH_ACCOUNT_PASSWORD }}
+
+      - name: login to GH registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
+
+      - id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}
+
+      - name: build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: "containers/${{ inputs.container_name }}"
+          file: "containers/${{ inputs.container_name }}/Containerfile"
+          tags: ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${{ needs.prepare.outputs.version }}-${{ matrix.suffix }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ matrix.platform }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:cache-${{ matrix.suffix }}
+          cache-to: type=registry,ref=${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:cache-${{ matrix.suffix }},mode=max
+          push: true
+
+  manifest:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: login to GH registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: set image tags
+        id: set-tags
+        run: |
+          TAGS="${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${{ needs.prepare.outputs.version }}"
+
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAGS="$TAGS,${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:latest"
+          fi
+
+          if [[ "${{ github.ref }}" == refs/heads/release-* ]]; then
+            RELEASE_BRANCH_NAME=$(basename "${{ github.ref }}")
+            TAGS="$TAGS,${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${RELEASE_BRANCH_NAME}"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: create and push manifest
+        id: manifest
+        run: |
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.set-tags.outputs.tags }}"
+          for TAG in "${TAG_ARRAY[@]}"; do
+            docker buildx imagetools create -t "${TAG}" \
+              ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${{ needs.prepare.outputs.version }}-amd64 \
+              ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${{ needs.prepare.outputs.version }}-arm64
+          done
+          # get digest from the version tag
+          DIGEST=$(docker buildx imagetools inspect ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}:${{ needs.prepare.outputs.version }} --format '{{json .Manifest}}' | jq -r '.digest')
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ vars.REGISTRY_ORG }}/${{ inputs.container_name }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true

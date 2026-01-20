@@ -1,0 +1,15 @@
+name: build the developer container image
+on:
+  workflow_dispatch:
+
+jobs:
+  build-developer-container:
+    uses: ./.github/workflows/build-container.yaml
+    with:
+      container_name: developer
+    secrets: inherit
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+      attestations: write
