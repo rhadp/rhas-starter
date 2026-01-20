@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-developer-container:
-    uses: ./.github/workflows/build-container.yaml
+  build-container:
+    uses: ./.github/workflows/build.yaml
     with:
-      container_name: developer
+      container_name: rhas-starter
     secrets: inherit
     permissions:
       packages: write
