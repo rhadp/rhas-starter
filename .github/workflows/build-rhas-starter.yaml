@@ -1,4 +1,4 @@
-name: build the developer container image
+name: build rhas-starter container image
 on:
   workflow_dispatch:
 

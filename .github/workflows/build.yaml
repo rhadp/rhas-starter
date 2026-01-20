@@ -1,4 +1,4 @@
-name: Reusable container build
+name: reusable container build
 
 on:
   workflow_call:
