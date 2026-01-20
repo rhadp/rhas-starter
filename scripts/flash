@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ORG_NAME="rhadp"
+REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+IMAGE_NAME="autosd9-qemu.qcow2"
+
+# check if there are any tags, if not use a default version
+if git describe --tags --exact-match HEAD 2>/dev/null; then
+    VERSION=$(git describe --tags --exact-match HEAD)
+elif git describe --tags 2>/dev/null; then
+    VERSION=$(git describe --tags)
+else
+    VERSION="$(git rev-parse --short HEAD)"
+fi
+
+VERSION=${VERSION#v}
+IMAGE="$VERSION-$IMAGE_NAME"
+
+URL="https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/$ORG_NAME/$REPO_NAME/$IMAGE"
+
+echo "Flashing image $URL"
+
+j flasher flash $URL
+set +x
+
+echo "Flashed image $URL"
