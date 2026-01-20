@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: ./trigger-build [EVENT_LISTENER_URL]
+
+# Configuration - override with environment variables
+REPO_URL="${REPO_URL:-$(git remote get-url origin)}"
+REPO_NAME="${REPO_NAME:-$(basename -s .git "$REPO_URL")}"
+BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
+COMMIT_SHA="${COMMIT_SHA:-$(git rev-parse HEAD)}"
+EVENT_TYPE="${EVENT_TYPE:-push}"
+
+# EventListener URL can be passed as argument or environment variable
+EVENT_LISTENER_URL="${1:-${BUILDER_WEBHOOK_ENDPOINT:-}}"
+USER_NAME=`cat /config/user/profile/name`
+
+if [[ -z "$EVENT_LISTENER_URL" ]]; then
+    echo "Error: EventListener URL is required"
+    echo "Usage: $0 <event-listener-url>"
+    echo "   or: BUILDER_WEBHOOK_ENDPOINT=<url> $0"
+    exit 1
+fi
+
+# Build the GitHub-like webhook payload
+PAYLOAD=$(cat <<EOF
+{
+  "ref": "refs/heads/${BRANCH}",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "${COMMIT_SHA}",
+  "repository": {
+    "name": "${REPO_NAME}",
+    "full_name": "${REPO_NAME}",
+    "clone_url": "${REPO_URL}",
+    "html_url": "${REPO_URL%.git}"
+  },
+  "head_commit": {
+    "id": "${COMMIT_SHA}",
+    "message": "Manual trigger from CLI by ${USER_NAME}"
+  },
+  "pusher": {
+    "name": "$(git config user.name || echo 'cli-user')",
+    "email": "$(git config user.email || echo 'cli@local')"
+  }
+}
+EOF
+)
+
+echo "Triggering build..."
+echo "  EventListener: $EVENT_LISTENER_URL"
+echo "  Repository:    $REPO_URL"
+echo "  Branch:        $BRANCH"
+echo "  Commit:        $COMMIT_SHA"
+echo ""
+
+# Send the webhook request
+HTTP_CODE=$(curl -s -o /tmp/trigger-build-response.txt -w "%{http_code}" \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -H "X-GitHub-Event: ${EVENT_TYPE}" \
+    -H "X-GitHub-Delivery: $(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo 'manual-trigger')" \
+    -d "$PAYLOAD" \
+    "$EVENT_LISTENER_URL")
+
+RESPONSE=$(cat /tmp/trigger-build-response.txt)
+
+if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]]; then
+    echo "Build triggered successfully (HTTP $HTTP_CODE)"
+    if [[ -n "$RESPONSE" ]]; then
+        echo "Response: $RESPONSE"
+    fi
+else
+    echo "Failed to trigger build (HTTP $HTTP_CODE)"
+    if [[ -n "$RESPONSE" ]]; then
+        echo "Response: $RESPONSE"
+    fi
+    exit 1
+fi
