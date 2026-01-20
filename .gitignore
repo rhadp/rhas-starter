@@ -25,3 +25,4 @@ hack.*
 **hack**.yml
 cheatsheet.md
 .DS_Store
+.claude/**
