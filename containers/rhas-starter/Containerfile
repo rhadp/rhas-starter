@@ -25,6 +25,8 @@ RUN dnf install -y epel-release && \
         && dnf -y clean all --enablerepo='*' && \
         rm -rf /var/cache/dnf
 
+RUN mkdir -p /tmp/log /run/dlt /run/vsomeip
+
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
 
