@@ -13,6 +13,8 @@ EVENT_TYPE="${EVENT_TYPE:-push}"
 
 # EventListener URL can be passed as argument or environment variable
 EVENT_LISTENER_URL="${1:-${BUILDER_WEBHOOK_ENDPOINT:-}}"
+
+USER_EMAIL=`cat /config/user/profile/email | sed -E 's/^([^@]+@[^@]+\.[^@]+)@.*/\1/'`^
 USER_NAME=`cat /config/user/profile/name`
 
 if [[ -z "$EVENT_LISTENER_URL" ]]; then
@@ -39,8 +41,8 @@ PAYLOAD=$(cat <<EOF
     "message": "Manual trigger from CLI by ${USER_NAME}"
   },
   "pusher": {
-    "name": "$(git config user.name || echo 'cli-user')",
-    "email": "$(git config user.email || echo 'cli@local')"
+    "name": "${USER_NAME}",
+    "email": "${USER_EMAIL}"
   }
 }
 EOF
