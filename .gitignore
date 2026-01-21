@@ -10,7 +10,7 @@ _build
 *.cmake
 **/CMakeFiles/**
 CMakeCache.txt
-Makefile
+src/Makefile
 engine-service
 radio-client
 radio-service
