@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ORG_NAME="rhadp"
-REPO_NAME=$(basename $(git rev-parse --show-toplevel))
+REPO_NAME=$(git remote get-url origin | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')
 IMAGE_NAME="autosd9-qemu.qcow2"
 
 # check if there are any tags, if not use a default version

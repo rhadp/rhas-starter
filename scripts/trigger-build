@@ -5,7 +5,7 @@ set -euo pipefail
 
 # Configuration - override with environment variables
 REPO_URL="${REPO_URL:-$(git remote get-url origin)}"
-REPO_NAME="${REPO_NAME:-$(basename -s .git "$REPO_URL")}"
+REPO_NAME="${REPO_NAME:-$(echo "$REPO_URL" | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')}"
 BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_SHA="${COMMIT_SHA:-$(git rev-parse HEAD)}"
 EVENT_TYPE="${EVENT_TYPE:-push}"
