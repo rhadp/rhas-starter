@@ -5,7 +5,8 @@ set -euo pipefail
 
 # Configuration - override with environment variables
 REPO_URL="${REPO_URL:-$(git remote get-url origin)}"
-REPO_NAME="${REPO_NAME:-$(echo "$REPO_URL" | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')}"
+REPO_FULL_NAME="${REPO_FULL_NAME:-$(echo "$REPO_URL" | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')}"
+REPO_NAME="${REPO_NAME:-$(echo "$REPO_FULL_NAME" | sed 's#.*/##')}"
 BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_SHA="${COMMIT_SHA:-$(git rev-parse HEAD)}"
 EVENT_TYPE="${EVENT_TYPE:-push}"
@@ -29,7 +30,7 @@ PAYLOAD=$(cat <<EOF
   "after": "${COMMIT_SHA}",
   "repository": {
     "name": "${REPO_NAME}",
-    "full_name": "${REPO_NAME}",
+    "full_name": "${REPO_FULL_NAME}",
     "clone_url": "${REPO_URL}",
     "html_url": "${REPO_URL%.git}"
   },

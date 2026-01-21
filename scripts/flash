@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORG_NAME="rhadp"
-REPO_NAME=$(git remote get-url origin | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')
+REPO_FULL_NAME=$(git remote get-url origin | sed 's#.*/\([^/]*/[^/]*\)$#\1#' | sed 's/\.git$//')
+ORG_NAME=$(echo "$REPO_FULL_NAME" | sed 's#/.*##')
+REPO_NAME=$(echo "$REPO_FULL_NAME" | sed 's#.*/##')
 IMAGE_NAME="autosd9-qemu.qcow2"
 
 # check if there are any tags, if not use a default version
@@ -17,7 +18,7 @@ fi
 VERSION=${VERSION#v}
 IMAGE="$VERSION-$IMAGE_NAME"
 
-URL="https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/$ORG_NAME/$REPO_NAME/$IMAGE"
+URL="https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/$REPO_FULL_NAME/$IMAGE"
 
 echo "Flashing image $URL"
 
