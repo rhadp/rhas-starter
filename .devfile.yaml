@@ -9,7 +9,7 @@ metadata:
 components:
   - name: runtime
     container:
-      image: ghcr.io/rhadp/rhas-starter:latest
+      image: ghcr.io/rhadp/codespaces:latest
       memoryLimit: "4Gi"
       memoryRequest: "1Gi"
       cpuLimit: "4"

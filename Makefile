@@ -38,7 +38,7 @@ builder-container:
 build: clean
 	@echo "🔨 Building binaries inside container..."
 	$(CONTAINER_TOOL) run --rm \
-		-v $(PWD)/src:/opt/app-root/src:Z \
+		-v $(PWD)/src:/opt/app-root/src:z \
 		-w /opt/app-root/src \
 		$(BUILDER_IMAGE):$(TAG) \
 		bash -c "cmake . && make"
@@ -48,7 +48,7 @@ build: clean
 run:
 	@echo "🔨 Running container..."
 	$(CONTAINER_TOOL) run --rm -it \
-		-v $(PWD)/src:/opt/app-root/src:Z \
+		-v $(PWD)/src:/opt/app-root/src:z \
 		-w /opt/app-root/src \
 		$(BUILDER_IMAGE):$(TAG) \
 		bash
@@ -60,7 +60,7 @@ clean:
 	@rm -rf src/CMakeCache.txt src/CMakeFiles src/cmake_install.cmake
 	@rm -rf src/Makefile src/*.cmake
 	@rm -f src/engine-service src/radio-service src/radio-client
-	@rm -f src/*.o src/*.a
+	@rm -f src/*.o src/*.a src/.bash_history .bash_history
 	@echo "✅ Cleanup complete"
 
 .PHONY: container build clean
