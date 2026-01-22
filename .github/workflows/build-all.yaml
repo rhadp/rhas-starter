@@ -1,0 +1,33 @@
+name: build all containers
+on:
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  build-rhas-starter:
+    uses: ./.github/workflows/build.yaml
+    with:
+      container_name: rhas-starter
+    secrets: inherit
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+      attestations: write
+
+  build-rhas-starter-builder:
+    uses: ./.github/workflows/build.yaml
+    with:
+      container_name: rhas-starter-builder
+    secrets: inherit
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+      attestations: write
