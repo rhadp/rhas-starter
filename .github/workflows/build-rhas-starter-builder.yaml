@@ -1,0 +1,15 @@
+name: build rhas-starter builder container image
+on:
+  workflow_dispatch:
+
+jobs:
+  build-container:
+    uses: ./.github/workflows/build.yaml
+    with:
+      container_name: rhas-starter-builder
+    secrets: inherit
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+      attestations: write

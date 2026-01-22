@@ -26,3 +26,4 @@ hack.*
 cheatsheet.md
 .DS_Store
 .claude/**
+**/.bash_history
