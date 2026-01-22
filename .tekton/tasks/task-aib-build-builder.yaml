@@ -1,0 +1,193 @@
+kind: Task
+apiVersion: tekton.dev/v1beta1
+metadata:
+  name: aib-build-builder
+spec:
+  params:
+    # job parameters
+    - name: JOB_ID
+      description: "the reference used to track the job and access its assets"
+      type: string
+      default: ""
+    # aib build parameters
+    - name: MANIFEST_FILE
+      description: "manifest file to build"
+      type: string
+      default: "manifests/simple.aib.yml"
+    - name: DISTRO
+      type: string
+      default: "autosd10-sig"
+    - name: ARCH
+      type: string
+      default: "aarch64"
+    - name: BUILDER_IMAGE
+      type: string
+      default: "localhost/builder-autosd10-sig"
+    - name: AIB_IMAGE
+      type: string
+      default: "quay.io/centos-sig-automotive/automotive-image-builder:latest" # ghcr.io/rhadp/automotive-image-builder
+
+  steps:
+    - name: aib-build-builder
+      image: $(params.AIB_IMAGE)
+
+      resources:
+        requests:
+          memory: "4Gi"
+          cpu: "500m"
+        limits:
+          memory: "8Gi"
+          cpu: "2"
+
+      script: |
+        #!/usr/bin/env bash
+
+        set -euo pipefail
+
+        # Configure container storage to use fuse-overlayfs
+        echo "Configuring container storage with fuse-overlayfs..."
+
+        # Verify fuse-overlayfs is available
+        if ! command -v fuse-overlayfs &> /dev/null; then
+            echo "WARNING: fuse-overlayfs not found, falling back to vfs driver"
+            STORAGE_DRIVER="vfs"
+        else
+            echo "fuse-overlayfs found at: $(which fuse-overlayfs)"
+            STORAGE_DRIVER="overlay"
+        fi
+
+        # Create container storage configuration using shared workspace subdirectory
+        CONTAINER_STORAGE_PATH="$(workspaces.source.path)/.container-storage"
+        mkdir -p /etc/containers
+        cat > /etc/containers/storage.conf <<EOF
+        [storage]
+          driver = "$STORAGE_DRIVER"
+          runroot = "/run/containers/storage"
+          graphroot = "$CONTAINER_STORAGE_PATH"
+
+        [storage.options.overlay]
+          mount_program = "/usr/bin/fuse-overlayfs"
+          mountopt = "nodev,metacopy=on"
+        EOF
+
+        # Create storage directories
+        mkdir -p "$CONTAINER_STORAGE_PATH"
+        mkdir -p /run/containers/storage
+
+        # Create symlink from default path to workspace storage
+        # Some tools (like bootc-image-builder) use hardcoded paths
+        rm -rf /var/lib/containers/storage
+        mkdir -p /var/lib/containers
+        ln -sf "$CONTAINER_STORAGE_PATH" /var/lib/containers/storage
+
+        echo "Container storage configured with driver: $STORAGE_DRIVER"
+
+        # Configure osbuild
+        OSBUILD_PATH="/usr/bin/osbuild"
+        RUN_TMP_PATH="/run/osbuild/"
+
+        BUILD_PATH="/build"
+
+        mkdir -p "$BUILD_PATH"
+        mkdir -p "$RUN_TMP_PATH"
+
+        if mountpoint -q "$OSBUILD_PATH"; then
+            exit 0
+        fi
+
+        ROOT_TYPE="system_u:object_r:root_t:s0"
+        chcon "$ROOT_TYPE" "$BUILD_PATH"
+
+        INSTALL_TYPE="system_u:object_r:install_exec_t:s0"
+        if ! mountpoint -q "$RUN_TMP_PATH"; then
+          mount -t tmpfs tmpfs "$RUN_TMP_PATH"
+        fi
+
+        DEST_PATH="$RUN_TMP_PATH/osbuild"
+        cp -p "$OSBUILD_PATH" "$DEST_PATH"
+        chcon "$INSTALL_TYPE" "$DEST_PATH"
+
+        mount --bind "$DEST_PATH" "$OSBUILD_PATH"
+
+        cd $(workspaces.source.path)
+
+        # setup podman credentials
+        if [[ "$(workspaces.dockerconfig.bound)" == "true" ]]; then
+
+          # if config.json exists at workspace root, we use that
+          if test -f "$(workspaces.dockerconfig.path)/config.json"; then
+            export DOCKER_CONFIG="$(workspaces.dockerconfig.path)"
+
+          # else we look for .dockerconfigjson at the root
+          elif test -f "$(workspaces.dockerconfig.path)/.dockerconfigjson"; then
+            cp "$(workspaces.dockerconfig.path)/.dockerconfigjson" "$HOME/.docker/config.json"
+            export DOCKER_CONFIG="$HOME/.docker"
+
+          # need to error out if neither files are present
+          else
+            echo "neither 'config.json' nor '.dockerconfigjson' found at workspace root"
+            exit 1
+          fi
+        fi
+
+        # build the builder image
+
+        MANIFEST_FILE=$(workspaces.source.path)/$(params.MANIFEST_FILE)
+
+        # produces a bootc image containing required tools that is used in the to-disk-image (and reseal) command.
+        AIB_BUILD_BUILDER_CMD="automotive-image-builder build-builder \
+          --distro $(params.DISTRO) \
+          --arch=$(params.ARCH) \
+          --build-dir=$BUILD_PATH \
+          --osbuild-manifest=/output/build-builder.json \
+          --if-needed \
+          --verbose \
+          $(params.BUILDER_IMAGE)"
+
+        echo "Running the build-builder command: $AIB_BUILD_BUILDER_CMD"
+        $AIB_BUILD_BUILDER_CMD
+
+        # copying build artifacts to shared workspace...
+
+        mkdir -p $(workspaces.source.path)/binaries
+
+        cp -v /output/build-builder.json $(workspaces.source.path)/binaries/build-builder.json
+
+      securityContext:
+        capabilities: {}
+        privileged: true
+        seLinuxOptions:
+          type: unconfined_t
+
+      volumeMounts:
+        - mountPath: /build
+          name: build-dir
+        - mountPath: /output
+          name: output-dir
+        - mountPath: /run/osbuild
+          name: run-dir
+        - mountPath: /dev
+          name: dev
+        - mountPath: /run/containers
+          name: container-run
+
+  volumes:
+    - emptyDir:
+        medium: Memory
+        sizeLimit: 10Gi
+      name: build-dir
+    - emptyDir: {}
+      name: output-dir
+    - emptyDir: {}
+      name: run-dir
+    - hostPath:
+        path: /dev
+      name: dev
+    - emptyDir: {}
+      name: container-run
+
+  workspaces:
+    - name: source
+    - name: dockerconfig
+      description: Includes a docker `config.json`
+      optional: true

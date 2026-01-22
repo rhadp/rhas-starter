@@ -1,0 +1,31 @@
+kind: Task
+apiVersion: tekton.dev/v1
+metadata:
+  name: jumpstarter-run-script
+spec:
+  description: |
+    Run script under a Jumpstarter lease
+  params:
+    - name: selector
+      description: "The Jumpstarter exporter selector"
+      type: string
+    - name: script
+      description: "The script to run under the Jumpstarter lease"
+      type: string
+  steps:
+    - name: run-script
+      image: quay.io/jumpstarter-dev/jumpstarter:latest
+      script: |
+        #!/usr/bin/env bash
+
+        set -euo pipefail
+
+        export JMP_CLIENT_CONFIG_HOME=$(workspaces.config-dir.path)
+        export JUMPSTARTER_GRPC_INSECURE=1
+
+        jmp shell --selector $(params.selector) <<EOF
+          $(params.script)
+        EOF
+  workspaces:
+    - name: config-dir
+      description: The workspace which contains Jumpstarter client config
