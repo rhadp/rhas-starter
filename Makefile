@@ -8,6 +8,8 @@ NAMESPACE ?= rhadp
 # Image names and tags
 DEVELOPER_IMAGE = $(REGISTRY)/$(NAMESPACE)/rhas-starter
 BUILDER_IMAGE = $(REGISTRY)/$(NAMESPACE)/rhas-starter-builder
+RUNTIME_IMAGE = $(REGISTRY)/$(NAMESPACE)/radioapp
+
 TAG ?= latest
 
 # Build tool
@@ -44,7 +46,16 @@ build: clean
 		bash -c "cmake . && make"
 	@echo "✅ Binaries built successfully"
 
-# Run the container
+# Building the runtime container
+runtime-container: build
+	@echo "🔨 Building runtime container..."
+	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
+		-f src/Containerfile \
+		-t $(RUNTIME_IMAGE):$(TAG) \
+		src/
+	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
+
+# Run the builder container
 run:
 	@echo "🔨 Running container..."
 	$(CONTAINER_TOOL) run --rm -it \
@@ -53,6 +64,7 @@ run:
 		$(BUILDER_IMAGE):$(TAG) \
 		bash
 	@echo "✅ Container run successfully"
+
 # Clean compilation artifacts
 clean:
 	@echo "🧹 Cleaning compilation artifacts..."
