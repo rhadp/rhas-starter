@@ -10,6 +10,17 @@ on:
       - 'main'
 
 jobs:
+  build-rhas-starter:
+    uses: ./.github/workflows/build.yaml
+    with:
+      container_name: rhas-starter
+    secrets: inherit
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+      attestations: write
+
   build-rhas-starter-builder:
     uses: ./.github/workflows/build.yaml
     with:
