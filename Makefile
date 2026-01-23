@@ -19,7 +19,6 @@ CONTAINER_TOOL ?= podman
 BUILD_ARGS ?= --build-arg TARGETARCH=$(shell uname -m | sed 's/x86_64/amd64/')
 
 # Build the container images
-
 developer-container:
 	@echo "🔨 Building codespaces image..."
 	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
@@ -36,7 +35,15 @@ builder-container:
 		containers/rhas-starter-builder/
 	@echo "✅ Builder image built: $(BUILDER_IMAGE):$(TAG)"
 
-# Build binaries inside the container
+runtime-container: build
+	@echo "🔨 Building runtime container..."
+	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
+		-f src/Containerfile \
+		-t $(RUNTIME_IMAGE):$(TAG) \
+		src/
+	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
+
+# Build binaries inside the builder container
 build: clean
 	@echo "🔨 Building binaries inside container..."
 	$(CONTAINER_TOOL) run --rm \
@@ -45,15 +52,6 @@ build: clean
 		$(BUILDER_IMAGE):$(TAG) \
 		bash -c "cmake . && make"
 	@echo "✅ Binaries built successfully"
-
-# Building the runtime container
-runtime-container: build
-	@echo "🔨 Building runtime container..."
-	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
-		-f src/Containerfile \
-		-t $(RUNTIME_IMAGE):$(TAG) \
-		src/
-	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
 
 # Run the builder container
 run:
