@@ -35,14 +35,6 @@ builder-container:
 		containers/rhas-starter-builder/
 	@echo "✅ Builder image built: $(BUILDER_IMAGE):$(TAG)"
 
-runtime-container: build
-	@echo "🔨 Building runtime container..."
-	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
-		-f src/Containerfile \
-		-t $(RUNTIME_IMAGE):$(TAG) \
-		src/
-	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
-
 # Build binaries inside the builder container
 build: clean
 	@echo "🔨 Building binaries inside container..."
@@ -53,15 +45,13 @@ build: clean
 		bash -c "cmake . && make"
 	@echo "✅ Binaries built successfully"
 
-# Run the builder container
-run:
-	@echo "🔨 Running container..."
-	$(CONTAINER_TOOL) run --rm -it \
-		-v $(PWD)/src:/opt/app-root/src:z \
-		-w /opt/app-root/src \
-		$(BUILDER_IMAGE):$(TAG) \
-		bash
-	@echo "✅ Container run successfully"
+build-runtime: build
+	@echo "🔨 Building runtime container..."
+	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
+		-f src/Containerfile \
+		-t $(RUNTIME_IMAGE):$(TAG) \
+		src/
+	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
 
 # Clean compilation artifacts
 clean:
