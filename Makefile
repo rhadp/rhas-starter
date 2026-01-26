@@ -9,8 +9,10 @@ NAMESPACE ?= rhadp
 DEVELOPER_IMAGE = $(REGISTRY)/$(NAMESPACE)/rhas-starter
 BUILDER_IMAGE = $(REGISTRY)/$(NAMESPACE)/rhas-starter-builder
 RUNTIME_IMAGE = $(REGISTRY)/$(NAMESPACE)/radioapp
-
 TAG ?= latest
+
+# Container name for local testing
+CONTAINER_NAME ?= radioapp-test
 
 # Build tool
 CONTAINER_TOOL ?= podman
@@ -53,6 +55,36 @@ build-runtime: build
 		src/
 	@echo "✅ Runtime container built: $(RUNTIME_IMAGE):$(TAG)"
 
+# Run the runtime container locally for testing
+# Removes any existing container first, then runs in detached mode
+# Use 'make logs' to view output or 'make stop' to stop
+run: 
+	@echo "🧹 Removing existing container (if any)..."
+	-$(CONTAINER_TOOL) rm -f $(CONTAINER_NAME) 2>/dev/null || true
+	@echo "🚀 Starting container $(CONTAINER_NAME)..."
+	$(CONTAINER_TOOL) run -d \
+		--name $(CONTAINER_NAME) \
+		-p 8000:8000 \
+		$(RUNTIME_IMAGE):$(TAG)
+	@echo "✅ Container started: $(CONTAINER_NAME)"
+	@echo "   View logs: make logs"
+	@echo "   Follow logs: make logs-f"
+	@echo "   Stop: make stop"
+
+# View container logs
+logs:
+	$(CONTAINER_TOOL) logs $(CONTAINER_NAME)
+
+# Follow container logs (tail -f style)
+logs-f:
+	$(CONTAINER_TOOL) logs -f $(CONTAINER_NAME)
+
+# Stop and remove the test container
+stop:
+	@echo "🛑 Stopping container $(CONTAINER_NAME)..."
+	-$(CONTAINER_TOOL) rm -f $(CONTAINER_NAME) 2>/dev/null || true
+	@echo "✅ Container stopped"
+
 # Clean compilation artifacts
 clean:
 	@echo "🧹 Cleaning compilation artifacts..."
@@ -63,5 +95,5 @@ clean:
 	@rm -f src/*.o src/*.a src/.bash_history .bash_history
 	@echo "✅ Cleanup complete"
 
-.PHONY: container build clean
+.PHONY: developer-container builder-container build build-runtime clean run logs logs-f stop
 
