@@ -2,6 +2,16 @@
 
 A starter project for building RHIVOS/AutoSD images with sample automotive applications.
 
+## Overview
+
+This repo walks you through the developer workflow for automotive software: build your app locally or in a Cloud-based Development Environment (CDE), test it in a container, then deploy it to a virtual (or real) device. You'll use the same tools and patterns that work at scale in production.
+
+### About the Sample App
+
+The sample mimics a typical in-vehicle setup: a `radio-service` that broadcasts track info, station name, and volume, plus a `radio-client` that sends commands (power, tune, volume). There's also an `engine-service` for good measure.
+
+The apps communicate over [SOME/IP](https://some-ip.com/)—the standard middleware for automotive service discovery and messaging. Built with C++ and [CMake](https://cmake.org/).
+
 ## Build Locally
 
 **Prerequisites:** ARM CPU (e.g. Apple Silicon) and Podman.
