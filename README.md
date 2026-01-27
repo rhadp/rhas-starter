@@ -1,86 +1,51 @@
 # rhas-starter
 
-Example project demonstrating how to build and test a simple RHIVOS/AutoSD images with a sample automotive applications.
+A starter project for building RHIVOS/AutoSD images with sample automotive applications.
 
-## Build
+## Build Locally
 
-### Build locally
+**Prerequisites:** ARM CPU (e.g. Apple Silicon) and Podman.
 
-Prerequisites
-- ARM CPU (e.g. Apple Silicon)
-- Podman
-
-Building the codebase requires dependencies that normally are not installed on a developers desktop/laptop, e.g. vsomeip3-devel or boost-devel. 
-To avoid installing these dependecies locally, there is a so-called "builder container" with all build-time dependencies included. To build the apps locally, simply run:
+The build needs dependencies like `vsomeip3-devel` and `boost-devel` that you probably don't have installed. Rather than polluting your system, use the builder container:
 
 ```shell
-# build the binaries
-make build
-
-# or, build a runnable container
-make build-runtime
+make build-podman    # compile binaries
+make build-runtime   # package into runtime container
 ```
 
-### Test locally
+### Test Locally
 
 ```shell
-# run the radioapp container
-make run
-````
-
-To monitor the apps output:
-```shell
-podman logs -f radioapp
+make run                            # start the radioapp container
+podman logs -f radioapp             # watch the output
+podman exec -it radioapp /bin/bash  # poke around inside
 ```
 
-To access the running container and `poke` around:
-```shell
-podman exec -it radioapp /bin/bash
-```
+## Build in OpenShift Dev Spaces
 
-### Build using OpenShift Dev Spaces
+Create a workspace from [github.com/rhadp/rhas-starter](https://github.com/rhadp/rhas-starter/). The `.devfile.yaml` configures the IDE to use a container with all build dependencies pre-installed.
 
-Navigate to the OpenShift Dev Spaces Dashboard and create a new workspace form the GitHub repo: [https://github.com/rhadp/rhas-starter/](https://github.com/rhadp/rhas-starter/).
-
-The project contains a `.devfile.yaml`, which tells OpenShift Dev Spaces to use the `ghcr.io/rhadp/rhas-starter:latest` container image to launch the web IDE. 
-The container image is similar to the previous builder image as such as it has all the build-time dependencies for this project pre-installed.
-
-You can build the code directly in the IDE:
+Build directly in the IDE:
 
 ```shell
 make build
-
-# or, like this:
-cd src
-cmake .
-make
 ```
 
-After creating the binaries, you can create and test the runtime container:
+Then build and run the runtime container:
 
 ```shell
-# build the runtime container
 make build-runtime
-
-# run the runtime container
 make run
 ```
-**Note:** You will see that the "builder container" is pulled from the conatiner registry the first time you run the "build-runtime" target.
 
-Similar to inspecting the container locally, you can do the same inside the web IDE:
+OpenShift Dev Spaces supports [nested containers](https://docs.redhat.com/en/documentation/red_hat_openshift_dev_spaces/3.25/html/release_notes_and_known_issues/new-features#enhancement-crw-8320), so `podman` commands work as expected. Inspect your container the same way as locally:
 
 ```shell
-# and inspect it's output
 podman logs -f radioapp
-
-# or connect to the container
 podman exec -it radioapp /bin/bash
 ```
 
-This is possible because OpenShift Dev Spaces supports running nested containers, which allows you to use commands like `podman run` directly in a workspace.
-
-- 
-## Test on a virtual device
+## Test on a Virtual Device
 
 ```shell
 jmp shell -l type=virtual
@@ -90,6 +55,4 @@ j flasher flash "https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/prebuilt/autos
 j power on && j console start-console
 ```
 
-To drop out of the Jumpstarter shell, hit `Ctrl-B` 3 times.
-
-This will also end your lease on the exporter, making it available for other users or clients.
+Hit `Ctrl-B` three times to exit the Jumpstarter shell and release the device for others.
