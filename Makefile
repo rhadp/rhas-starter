@@ -12,7 +12,7 @@ RUNTIME_IMAGE = $(REGISTRY)/$(NAMESPACE)/radioapp
 TAG ?= latest
 
 # Container name for local testing
-CONTAINER_NAME ?= radioapp-test
+CONTAINER_NAME ?= radioapp
 
 # Build tool
 CONTAINER_TOOL ?= podman
