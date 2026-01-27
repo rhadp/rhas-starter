@@ -55,11 +55,37 @@ podman logs -f radioapp
 podman exec -it radioapp /bin/bash
 ```
 
+## Build the AutoSD Image
+
+Once your app works, package it into an [AutoSD](https://sigs.centos.org/automotive/index.html) OS image—a bootable in-vehicle OS with your containerized app baked in:
+
+```shell
+./scripts/trigger-build
+```
+
+This kicks off an OpenShift Pipeline. Track progress in the OpenShift web console; the finished image lands in S3.
+
 ## Test on a Virtual Device
+
+[Jumpstarter](https://github.com/jumpstarter-dev/jumpstarter) lets you flash and control virtual and physical devices from your terminal. First, initialize the Jumpstarter client config:
+
+```shell
+./scripts/init-jumpstarter
+```
+
+### Lease a Virtual Device
+
+Grab an available (virtual) device:
 
 ```shell
 jmp shell -l type=virtual
+```
 
+### Flash and Boot
+
+Flash your image (spins up a QEMU VM on a bare-metal OpenShift worker node), power on, and attach to the console:
+
+```shell
 j flasher flash "https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/prebuilt/autosd9-qemu.qcow2"
 
 j power on && j console start-console
