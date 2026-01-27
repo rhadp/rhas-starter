@@ -37,8 +37,14 @@ builder-container:
 		containers/rhas-starter-builder/
 	@echo "✅ Builder image built: $(BUILDER_IMAGE):$(TAG)"
 
-# Build binaries inside the builder container
+# Build binaries inside the src folder using local build tools and dependencies
 build: clean
+	@echo "🔨 Building binaries inside src folder..."
+	cd src && cmake . && make
+	@echo "✅ Binaries built successfully"
+
+# Build binaries inside the builder container
+build-podman: clean
 	@echo "🔨 Building binaries inside container..."
 	$(CONTAINER_TOOL) run --rm \
 		-v $(PWD)/src:/opt/app-root/src:z \
@@ -47,7 +53,7 @@ build: clean
 		bash -c "cmake . && make"
 	@echo "✅ Binaries built successfully"
 
-build-runtime: build
+build-runtime:
 	@echo "🔨 Building runtime container..."
 	$(CONTAINER_TOOL) build $(BUILD_ARGS) \
 		-f src/Containerfile \
@@ -95,5 +101,5 @@ clean:
 	@rm -f src/*.o src/*.a src/.bash_history .bash_history
 	@echo "✅ Cleanup complete"
 
-.PHONY: developer-container builder-container build build-runtime clean run logs logs-f stop
+.PHONY: developer-container builder-container build-podman build-runtime build clean run logs logs-f stop
 

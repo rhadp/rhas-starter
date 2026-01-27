@@ -38,6 +38,47 @@ To access the running container and `poke` around:
 podman exec -it radioapp /bin/bash
 ```
 
+### Build using OpenShift Dev Spaces
+
+Navigate to the OpenShift Dev Spaces Dashboard and create a new workspace form the GitHub repo: [https://github.com/rhadp/rhas-starter/](https://github.com/rhadp/rhas-starter/).
+
+The project contains a `.devfile.yaml`, which tells OpenShift Dev Spaces to use the `ghcr.io/rhadp/rhas-starter:latest` container image to launch the web IDE. 
+The container image is similar to the previous builder image as such as it has all the build-time dependencies for this project pre-installed.
+
+You can build the code directly in the IDE:
+
+```shell
+make build
+
+# or, like this:
+cd src
+cmake .
+make
+```
+
+After creating the binaries, you can create and test the runtime container:
+
+```shell
+# build the runtime container
+make build-runtime
+
+# run the runtime container
+make run
+```
+**Note:** You will see that the "builder container" is pulled from the conatiner registry the first time you run the "build-runtime" target.
+
+Similar to inspecting the container locally, you can do the same inside the web IDE:
+
+```shell
+# and inspect it's output
+podman logs -f radioapp
+
+# or connect to the container
+podman exec -it radioapp /bin/bash
+```
+
+This is possible because OpenShift Dev Spaces supports running nested containers, which allows you to use commands like `podman run` directly in a workspace.
+
 - 
 ## Test on a virtual device
 
