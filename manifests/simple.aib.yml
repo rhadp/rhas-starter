@@ -1,0 +1,34 @@
+# This is a simpler example showing
+# - how to add custom rpms and containers
+# - how to set the root password
+
+name: simple
+
+content:
+  rpms:
+    - openssh-server
+    - chrony
+    - iproute
+    - vim
+  systemd:
+    enabled_services:
+      - sshd.service
+
+qm:
+  content:
+    rpms:
+      - vim
+
+image:
+  image_size: 8 GiB
+  sealed: false
+  partitions:
+    var_qm:
+      relative_size: 0.1
+
+auth:
+  # "password"
+  root_password: $6$xoLqEUz0cGGJRx01$H3H/bFm0myJPULNMtbSsOFd/2BnHqHkMD92Sfxd.EKM9hXTWSmELG8cf205l6dktomuTcgKGGtGDgtvHVXSWU.
+  sshd_config:
+    PermitRootLogin: true
+    PasswordAuthentication: true
