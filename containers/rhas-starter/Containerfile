@@ -9,8 +9,7 @@ ENV JUMPSTARTER_VERSION=develop \
 # install jumpstarter & other python dependencies
 COPY requirements.txt /tmp/requirements.txt
 
-RUN uv venv /venv && \
-    uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
+RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
     uv pip install -r /tmp/requirements.txt && \
     rm -rf /tmp/requirements.txt && \
     echo "alias python='uv run python'" >> /home/user/.bashrc && \
