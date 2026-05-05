@@ -9,12 +9,39 @@ ENV JUMPSTARTER_VERSION=develop \
 # install jumpstarter & other python dependencies
 COPY requirements.txt /tmp/requirements.txt
 
+# install the patched version of jumpstarter & other python dependencies
 RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
     uv pip install -r /tmp/requirements.txt && \
     rm -rf /tmp/requirements.txt && \
     echo "alias python='uv run python'" >> /home/user/.bashrc && \
     echo "alias pip='uv pip'" >> /home/user/.bashrc && \
     echo "source /venv/bin/activate" >> /home/user/.bashrc 
+
+# install Claude Code
+# Using direct binary download instead of the install.sh script to avoid OOM-killing
+# the binary's post-install setup step in memory-constrained container builds.
+RUN set -e; \
+    arch=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/'); \
+    if ldd /bin/ls 2>&1 | grep -q musl || [ -f /lib/libc.musl-x86_64.so.1 ] || [ -f /lib/libc.musl-aarch64.so.1 ]; then \
+        platform="linux-${arch}-musl"; \
+    else \
+        platform="linux-${arch}"; \
+    fi; \
+    version=$(curl -fsSL https://downloads.claude.ai/claude-code-releases/latest); \
+    curl -fsSL -o /usr/local/bin/claude "https://downloads.claude.ai/claude-code-releases/${version}/${platform}/claude"; \
+    chmod +x /usr/local/bin/claude && \
+    mkdir -p $HOME/.claude 
+
+# install gcloud
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-arm.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
+    else \
+        curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
+    fi && \
+    tar -xzf /tmp/google-cloud-sdk.tar.gz -C /tmp && \
+    /tmp/google-cloud-sdk/install.sh && \
+    rm -rf /tmp/google-cloud-sdk.tar.gz && \
+    rm -rf /tmp/google-cloud-sdk
 
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
