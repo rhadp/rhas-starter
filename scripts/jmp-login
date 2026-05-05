@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+JMP_CONFIG_LOCATION=/home/user/.config/jumpstarter/clients
+
+# get the user name from the profile
+USER_NAME=`cat /config/user/profile/name`
+
+# name normalization for used in jumpstarter/kubernetes
+CLIENT_NAME=$(echo "$USER_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g; s/-\+/-/g; s/^-//; s/-$//' | cut -c1-63)
+
+# generate location for the jumpstarter config location
+mkdir -p $JMP_CONFIG_LOCATION
+
+# create the jumpstarter client config
+jmp admin create client $CLIENT_NAME --insecure-tls --unsafe --nointeractive -n $JUMPSTARTER_NAMESPACE --oidc-username keycloak:$USER_NAME
+
+# login to jumpstarter
+jmp login --device-flow --insecure-tls --nointeractive --unsafe $CLIENT_NAME@$JUMPSTARTER_LOGIN_ENDPOINT
