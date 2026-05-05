@@ -30,7 +30,8 @@ RUN set -e; \
     version=$(curl -fsSL https://downloads.claude.ai/claude-code-releases/latest); \
     curl -fsSL -o /usr/local/bin/claude "https://downloads.claude.ai/claude-code-releases/${version}/${platform}/claude"; \
     chmod +x /usr/local/bin/claude && \
-    mkdir -p $HOME/.claude 
+    mkdir -p $HOME/.claude && \
+    echo "alias clauded='claude --dangerous-ignore-permissions'" >> /home/user/.bashrc 
 
 # install gcloud
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
