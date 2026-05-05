@@ -17,8 +17,8 @@ RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=
     echo "alias pip='uv pip'" >> /home/user/.bashrc && \
     echo "source /venv/bin/activate" >> /home/user/.bashrc 
 
-# install Claude Code
-# Using direct binary download instead of the install.sh script to avoid OOM-killing
+# 
+# Install Claude Code, using direct binary download instead of the install.sh script to avoid OOM-killing
 # the binary's post-install setup step in memory-constrained container builds.
 RUN set -e; \
     arch=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/'); \
@@ -38,10 +38,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     else \
         curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
     fi && \
-    tar -xzf /tmp/google-cloud-sdk.tar.gz -C /tmp && \
-    /tmp/google-cloud-sdk/install.sh --quiet --usage-reporting=false --command-completion=false --path-update=true && \
-    rm -rf /tmp/google-cloud-sdk.tar.gz && \
-    rm -rf /tmp/google-cloud-sdk
+    tar -xzf /tmp/google-cloud-sdk.tar.gz -C /home/tooling && \
+    /home/tooling/google-cloud-sdk/install.sh --quiet --usage-reporting=false --command-completion=false --path-update=false && \
+    rm -f /tmp/google-cloud-sdk.tar.gz
 
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
