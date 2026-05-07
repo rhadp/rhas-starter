@@ -12,3 +12,6 @@ test it in a container, then deploy it to a virtual (or real) device. You'll use
 
 oc apply -f manifests/app-qemu-exporter.yml -n openshift-gitops
 oc delete app app-jumpstarter-qemu -n openshift-gitops
+
+caib image build manifests/simple.aib.yml --disk --target qemu --internal-registry
+
