@@ -111,11 +111,11 @@ spec:
           imagePullPolicy: Always
           resources:
             limits:
-              cpu: 2.0
-              memory: "8G"
+              cpu: 4.0
+              memory: "16G"
             requests:
-              cpu: 1.0
-              memory: "6G"
+              cpu: 2.0
+              memory: "10G"
           securityContext:
             privileged: true
           volumeMounts:
@@ -218,8 +218,8 @@ spec:
                   type: jumpstarter_driver_qemu.driver.Qemu
                   config:
                     arch: aarch64
-                    smp: 4
-                    mem: 6G
+                    smp: 1
+                    mem: 8G
                     default_partitions:
                       OVMF_CODE.fd: /usr/share/AAVMF/AAVMF_CODE.fd
                       OVMF_VARS.fd: /usr/share/AAVMF/AAVMF_VARS.fd
