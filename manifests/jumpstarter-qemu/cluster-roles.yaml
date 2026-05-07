@@ -2,6 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: qemu-exporter-role
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 rules:
   - apiGroups: ["jumpstarter.dev"]
     resources:
