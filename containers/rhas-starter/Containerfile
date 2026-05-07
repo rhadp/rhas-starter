@@ -2,21 +2,6 @@ FROM ghcr.io/rhadp/codespaces:latest
 
 USER root
 
-# install this repository's version of jumpstarter
-ENV JUMPSTARTER_VERSION=develop \
-    JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
-
-# install jumpstarter & other python dependencies
-COPY requirements.txt /tmp/requirements.txt
-
-# install the patched version of jumpstarter & other python dependencies
-RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
-    uv pip install -r /tmp/requirements.txt && \
-    rm -rf /tmp/requirements.txt && \
-    echo "alias python='uv run python'" >> /home/user/.bashrc && \
-    echo "alias pip='uv pip'" >> /home/user/.bashrc && \
-    echo "source /venv/bin/activate" >> /home/user/.bashrc 
-
 # 
 # Install Claude Code, using direct binary download instead of the install.sh script to avoid OOM-killing
 # the binary's post-install setup step in memory-constrained container builds.
@@ -47,6 +32,21 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 # jmp-login script
 COPY scripts/jmp-login /usr/local/bin/jmp-login
 RUN chmod +x /usr/local/bin/jmp-login
+
+# install this repository's version of jumpstarter
+ENV JUMPSTARTER_VERSION=develop \
+JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
+
+# install jumpstarter & other python dependencies
+COPY requirements.txt /tmp/requirements.txt
+
+# install the patched version of jumpstarter & other python dependencies
+RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
+uv pip install -r /tmp/requirements.txt && \
+rm -rf /tmp/requirements.txt && \
+echo "alias python='uv run python'" >> /home/user/.bashrc && \
+echo "alias pip='uv pip'" >> /home/user/.bashrc && \
+echo "source /venv/bin/activate" >> /home/user/.bashrc 
 
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
