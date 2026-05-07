@@ -113,10 +113,10 @@ spec:
           resources:
             limits:
               cpu: 4.0
-              memory: "16G"
+              memory: "24G"
             requests:
               cpu: 2.0
-              memory: "10G"
+              memory: "16G"
           securityContext:
             privileged: true
           volumeMounts:
@@ -242,7 +242,7 @@ spec:
                   config:
                     arch: aarch64
                     smp: 1
-                    mem: 8G
+                    mem: 12G
                     default_partitions:
                       OVMF_CODE.fd: /usr/share/AAVMF/AAVMF_CODE.fd
                       OVMF_VARS.fd: /usr/share/AAVMF/AAVMF_VARS.fd
