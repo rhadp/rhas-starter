@@ -243,6 +243,7 @@ spec:
                     arch: aarch64
                     smp: 1
                     mem: 12G
+                    tpm: true
                     default_partitions:
                       OVMF_CODE.fd: /usr/share/AAVMF/AAVMF_CODE.fd
                       OVMF_VARS.fd: /usr/share/AAVMF/AAVMF_VARS.fd
@@ -253,6 +254,8 @@ spec:
               EOF
 
               sleep 60s
+
+              echo "Starting the exporter ..."
 
               jmp run --exporter-config qemu.yaml
 
