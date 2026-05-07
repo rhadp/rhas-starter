@@ -62,6 +62,11 @@ spec:
         - name: registry-ca
           configMap:
             name: registry-service-ca
+        - name: tpm
+          hostPath:
+            path: /dev/tpmrm0
+            type: CharDevice
+
       initContainers:
         - name: jumpstarter-init
           image: ghcr.io/rhadp/runtime:latest
@@ -125,6 +130,8 @@ spec:
               name: dev-kvm
             - mountPath: /dev/vhost-vsock
               name: dev-vhost-vsock
+            - mountPath: /dev/tpmrm0
+              name: tpm
             - mountPath: /etc/pki/ca-trust/source/anchors/service-ca-bundle.crt
               name: registry-ca
               subPath: service-ca-bundle.crt
