@@ -11,11 +11,11 @@ USER_NAME=`cat /config/user/profile/name`
 # CLIENT_NAME normalization for used in jumpstarter/kubernetes
 CLIENT_NAME=$(echo "$USER_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g; s/-\+/-/g; s/^-//; s/-$//' | cut -c1-63)
 if oc get client "$CLIENT_NAME" -n $JUMPSTARTER_NAMESPACE &>/dev/null; then
-  oc delete client "$CLIENT_NAME" -n $JUMPSTARTER_NAMESPACE || true
+  oc delete client "$CLIENT_NAME" -n $JUMPSTARTER_NAMESPACE &>/dev/null || true
 fi
 
 # create the jumpstarter client config
-jmp admin create client $CLIENT_NAME --insecure-tls --unsafe --nointeractive -n $JUMPSTARTER_NAMESPACE --oidc-username keycloak:$USER_NAME
+jmp admin create client $CLIENT_NAME --unsafe --nointeractive -n $JUMPSTARTER_NAMESPACE --oidc-username keycloak:$USER_NAME &>/dev/null
 
 # login to jumpstarter
-jmp login --device-flow --insecure-tls --nointeractive --unsafe $CLIENT_NAME@$JUMPSTARTER_LOGIN_ENDPOINT
+jmp login --device-flow --nointeractive --unsafe $CLIENT_NAME@$JUMPSTARTER_LOGIN_ENDPOINT
