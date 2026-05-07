@@ -19,7 +19,6 @@ spec:
     automated:
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
     retry:
       backoff:
