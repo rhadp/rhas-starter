@@ -240,10 +240,11 @@ spec:
                 qemu:
                   type: jumpstarter_driver_qemu.driver.Qemu
                   config:
-                    arch: aarch64
                     smp: 2
                     mem: 12G
                     tpm: true
+                    arch: aarch64
+                    virtio_transport: mmio # mmio is the default, but we can switch to virtio-pci if needed
                     default_partitions:
                       OVMF_CODE.fd: /usr/share/AAVMF/AAVMF_CODE.fd
                       OVMF_VARS.fd: /usr/share/AAVMF/AAVMF_VARS.fd
