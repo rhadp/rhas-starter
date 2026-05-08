@@ -38,7 +38,7 @@ j flasher flash "https://rhadp-aib-cdn.s3.us-east-2.amazonaws.com/prebuilt/autos
 
 # or
 
-j flasher flash oci://default-route-openshift-image-registry.apps.rhas.sandbox412.opentlc.com/automotive-dev-operator-system/simple-7757d:disk
+j flasher flash oci://default-route-openshift-image-registry.apps.rhas.sandbox5426.opentlc.com/automotive-dev-operator-system/simple-1ef10:disk
 
 j power on && j console start-console
 ```

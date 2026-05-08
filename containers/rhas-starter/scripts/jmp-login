@@ -15,7 +15,7 @@ if oc get client "$CLIENT_NAME" -n $JUMPSTARTER_NAMESPACE &>/dev/null; then
 fi
 
 # create the jumpstarter client config
-jmp admin create client $CLIENT_NAME --unsafe --nointeractive -n $JUMPSTARTER_NAMESPACE --oidc-username keycloak:$USER_NAME &>/dev/null
+jmp admin create client $CLIENT_NAME --insecure-tls --unsafe --nointeractive -n $JUMPSTARTER_NAMESPACE --oidc-username keycloak:$USER_NAME &>/dev/null
 
 # login to jumpstarter
-jmp login --device-flow --nointeractive --unsafe $CLIENT_NAME@$JUMPSTARTER_LOGIN_ENDPOINT
+jmp login --device-flow --nointeractive --insecure-tls --unsafe $CLIENT_NAME@$JUMPSTARTER_LOGIN_ENDPOINT
