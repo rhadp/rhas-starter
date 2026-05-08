@@ -2,7 +2,9 @@ FROM ghcr.io/rhadp/codespaces:latest
 
 USER root
 
-# 
+ENV CENTOS_RELEASE=9.0-36 \
+    ARCH=${TARGETARCH:-arm64}
+
 # Install Claude Code, using direct binary download instead of the install.sh script to avoid OOM-killing
 # the binary's post-install setup step in memory-constrained container builds.
 RUN set -e; \
@@ -19,7 +21,7 @@ RUN set -e; \
     echo "alias clauded='claude --dangerous-ignore-permissions'" >> /home/user/.bashrc 
 
 # install gcloud
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$ARCH" = "arm64" ]; then \
         curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-arm.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
     else \
         curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
