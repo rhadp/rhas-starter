@@ -1,0 +1,265 @@
+# Reference StatefulSet for the QEMU exporter with internal registry support.
+#
+# Key additions over the baseline:
+# - registry-ca volume + mount: trusts the OpenShift service-serving CA (Fix 3)
+# - OCI_USERNAME / OCI_PASSWORD_FILE env vars: fresh token on every flash (Fix 2)
+# - update-ca-trust in startup script (Fix 3)
+#
+# Prerequisites:
+# - registry-service-ca ConfigMap (see registry-service-ca.yaml)
+# - image-puller RoleBinding (see image-puller-rolebinding.yaml)
+# - jumpstarter-driver-qemu from mickume/jumpstarter@fix/qemu-oci-flash (Fixes 1+2)
+#
+# Adapt namespace, image, exporter config, and resource limits to your environment.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qemu-exporter
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 1
+  serviceName: qemu-exporter
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: qemu-exporter
+  template:
+    metadata:
+      labels:
+        app: qemu-exporter
+    annotations:
+        openshift.io/required-scc: privileged
+    spec:
+      #tolerations:
+      #- key: "metal"
+      #  operator: "Equal"
+      #  value: "true"
+      #  effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: auto.node-role/metal
+                operator: In
+                values:
+                - "true"
+      serviceAccountName: qemu-exporter
+      restartPolicy: Always
+      volumes:
+        - name: shared
+          emptyDir: {}
+        - name: dev-kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+        - name: dev-vhost-vsock
+          hostPath:
+            path: /dev/vhost-vsock
+            type: CharDevice
+        - name: registry-ca
+          configMap:
+            name: registry-service-ca
+
+      initContainers:
+        - name: jumpstarter-init
+          image: ghcr.io/rhadp/runtime:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /shared
+              name: shared
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -eo pipefail
+
+              # Extract the values from the service account
+              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+              API_SERVER=$(oc whoami --show-server)
+
+              # set ./kube/config correctly
+              mkdir -p ~/.kube
+
+              oc config set-cluster rhas \
+                --server=$API_SERVER \
+                --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+              oc config set-credentials qemu-sa \
+                --token=$TOKEN
+
+              oc config set-context qemu-ctx \
+                --cluster=rhas \
+                --user=qemu-sa \
+                --namespace=$NAMESPACE
+
+              oc config use-context qemu-ctx
+
+              # check if exporter already exists and delete it if so ...
+
+              EXPORTER_NAME=$(cat /etc/hostname)
+              if oc get exporter "$EXPORTER_NAME" -n $NAMESPACE &>/dev/null; then
+                echo "Exporter '$EXPORTER_NAME' already exists, deleting it now ..."
+                oc delete exporter "$EXPORTER_NAME" -n $NAMESPACE || true
+              fi
+
+      containers:
+        - name: jumpstarter-exporter
+          image: ghcr.io/rhadp/runtime:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 4.0
+              memory: "24G"
+            requests:
+              cpu: 2.0
+              memory: "16G"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /shared
+              name: shared
+            - mountPath: /dev/kvm
+              name: dev-kvm
+            - mountPath: /dev/vhost-vsock
+              name: dev-vhost-vsock
+            - mountPath: /etc/pki/ca-trust/source/anchors/service-ca-bundle.crt
+              name: registry-ca
+              subPath: service-ca-bundle.crt
+              readOnly: true
+          env:
+            - name: JUMPSTARTER_GRPC_INSECURE
+              value: "1"
+            - name: OCI_USERNAME
+              value: "serviceaccount"
+            - name: OCI_PASSWORD_FILE
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -eo pipefail
+
+              # start software TPM
+              swtpm socket \
+                --tpmstate dir=/tmp/swtpm \
+                --tpm2 \
+                --ctrl type=tcp,port=2322 \
+                --server type=tcp,port=2321 \
+                --flags not-need-init &
+
+              export TPM2TOOLS_TCTI="swtpm:host=127.0.0.1,port=2321"
+
+              timeout=10
+              while ! nc -z 127.0.0.1 2321 2>/dev/null; do
+                sleep 0.1
+                timeout=$((timeout - 1))
+                if [ "$timeout" -le 0 ]; then
+                  echo "ERROR: swtpm failed to start" >&2
+                  exit 1
+                fi
+              done
+              tpm2_startup -c
+
+              source /venv/bin/activate
+
+              # update to latest jumpstarter version
+              uv pip install --reinstall "git+https://github.com/mickume/jumpstarter@develop#subdirectory=python/packages/jumpstarter-all"
+
+              # Trust the internal registry's service-serving CA
+              if [ -f /etc/pki/ca-trust/source/anchors/service-ca-bundle.crt ]; then
+                  update-ca-trust
+              fi
+
+              # Extract the values from the service account
+              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+              API_SERVER=$(oc whoami --show-server)
+
+              # set ./kube/config correctly
+              mkdir -p ~/.kube
+
+              oc config set-cluster rhadp \
+                --server=$API_SERVER \
+                --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+              oc config set-credentials qemu-sa \
+                --token=$TOKEN
+
+              oc config set-context qemu-ctx \
+                --cluster=rhadp \
+                --user=qemu-sa \
+                --namespace=$NAMESPACE
+
+              oc config use-context qemu-ctx
+
+              # create the exporter config
+              EXPORTER_NAME=$(cat /etc/hostname)
+              
+              jmp admin create exporter "$EXPORTER_NAME" -n $NAMESPACE --label platform=qemu-arm --label type=qemu --save --insecure-tls --nointeractive --out ./dummy.yaml
+              TOKEN=$(yq '.token' dummy.yaml)
+              echo "$TOKEN" > /shared/token
+
+              # remove the exporter config
+              rm ./dummy.yaml
+
+              # detect the endpoint
+              while [ -z "$ENDPOINT" ]
+              do
+                ENDPOINT=$(kubectl get -n $(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace) \
+                  exporters.jumpstarter.dev $(cat /etc/hostname) -o jsonpath="{.status.endpoint}")
+                sleep 1s
+              done
+              echo "$ENDPOINT" > /shared/endpoint
+
+              # NOTE: Do NOT export OCI_PASSWORD here. The OCI_PASSWORD_FILE env var
+              # tells the QEMU driver to read the SA token fresh from disk on every
+              # flash, so credentials survive kubelet token rotation.
+
+              cat <<EOF > qemu.yaml
+              apiVersion: jumpstarter.dev/v1alpha1
+              kind: ExporterConfig
+              metadata:
+                namespace: $(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+                name: $(cat /etc/hostname)
+              endpoint: $(cat /shared/endpoint)
+              tls:
+                ca: ''
+                insecure: true
+              token: $(cat /shared/token)
+              export:
+                console:
+                  ref: qemu.console
+                flasher:
+                  ref: qemu.flasher
+                power:
+                  ref: qemu.power
+                qemu:
+                  type: jumpstarter_driver_qemu.driver.Qemu
+                  config:
+                    smp: 2
+                    mem: 12G
+                    tpm: true
+                    arch: aarch64
+                    virtio_transport: mmio # mmio is the default, but we can switch to virtio-pci if needed
+                    default_partitions:
+                      OVMF_CODE.fd: /usr/share/AAVMF/AAVMF_CODE.fd
+                      OVMF_VARS.fd: /usr/share/AAVMF/AAVMF_VARS.fd
+                    hostfwd:
+                      ssh:
+                        hostport: 9022
+                        guestport: 22
+              EOF
+
+              sleep 60s
+
+              echo "Starting the exporter ..."
+
+              jmp run --exporter-config qemu.yaml
+
+              #while true; do
+              #  sleep 30s
+              #done

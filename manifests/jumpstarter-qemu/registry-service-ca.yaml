@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-service-ca
+  annotations:
+    # OpenShift auto-populates this ConfigMap with the service-serving CA bundle.
+    # This CA is needed to trust the internal registry at
+    # image-registry.openshift-image-registry.svc:5000.
+    service.beta.openshift.io/inject-cabundle: "true"
+    argocd.argoproj.io/sync-wave: "0"
+data: {}

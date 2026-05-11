@@ -2,22 +2,9 @@ FROM ghcr.io/rhadp/codespaces:latest
 
 USER root
 
-# install this repository's version of jumpstarter
-ENV JUMPSTARTER_VERSION=develop \
-    JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
+ENV CENTOS_RELEASE=9.0-36 \
+    ARCH=${TARGETARCH:-arm64}
 
-# install jumpstarter & other python dependencies
-COPY requirements.txt /tmp/requirements.txt
-
-# install the patched version of jumpstarter & other python dependencies
-RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
-    uv pip install -r /tmp/requirements.txt && \
-    rm -rf /tmp/requirements.txt && \
-    echo "alias python='uv run python'" >> /home/user/.bashrc && \
-    echo "alias pip='uv pip'" >> /home/user/.bashrc && \
-    echo "source /venv/bin/activate" >> /home/user/.bashrc 
-
-# 
 # Install Claude Code, using direct binary download instead of the install.sh script to avoid OOM-killing
 # the binary's post-install setup step in memory-constrained container builds.
 RUN set -e; \
@@ -34,7 +21,7 @@ RUN set -e; \
     echo "alias clauded='claude --dangerous-ignore-permissions'" >> /home/user/.bashrc 
 
 # install gcloud
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$ARCH" = "arm64" ]; then \
         curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-arm.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
     else \
         curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz -o /tmp/google-cloud-sdk.tar.gz; \
@@ -48,6 +35,21 @@ ENV PATH="/home/tooling/google-cloud-sdk/bin:$PATH"
 # jmp-login script
 COPY scripts/jmp-login /usr/local/bin/jmp-login
 RUN chmod +x /usr/local/bin/jmp-login
+
+# install this repository's version of jumpstarter
+ENV JUMPSTARTER_VERSION=develop \
+JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
+
+# install jumpstarter & other python dependencies
+COPY requirements.txt /tmp/requirements.txt
+
+# install the patched version of jumpstarter & other python dependencies
+RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
+uv pip install -r /tmp/requirements.txt && \
+rm -rf /tmp/requirements.txt && \
+echo "alias python='uv run python'" >> /home/user/.bashrc && \
+echo "alias pip='uv pip'" >> /home/user/.bashrc && \
+echo "source /venv/bin/activate" >> /home/user/.bashrc 
 
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
