@@ -41,8 +41,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     fi && \
     tar -xzf /tmp/google-cloud-sdk.tar.gz -C /home/tooling && \
     /home/tooling/google-cloud-sdk/install.sh --quiet --usage-reporting=false --command-completion=false --path-update=false && \
-    rm -f /tmp/google-cloud-sdk.tar.gz && \
-    echo "export PATH=\$PATH:/home/tooling/google-cloud-sdk/bin" >> /home/user/.bashrc
+    rm -f /tmp/google-cloud-sdk.tar.gz
+
+ENV PATH="/home/tooling/google-cloud-sdk/bin:$PATH"
 
 # jmp-login script
 COPY scripts/jmp-login /usr/local/bin/jmp-login
