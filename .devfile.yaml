@@ -11,14 +11,17 @@ components:
   #- name: runtime-pv
   #  volume:
   #    size: 2Gi
-  - name: runtime
+  - name: workspace
     container:
       image: ghcr.io/rhadp/rhas-starter:latest
-      #volumeMounts:
-      #  - name: runtime-pv
-      #    path: "/home/user"
       memoryLimit: "4Gi"
       memoryRequest: "1Gi"
       cpuLimit: "4"
       cpuRequest: "1"
       mountSources: true
+      volumeMounts:
+        - name: workspace-config
+          path: "/home/user/.config"
+  - name: workspace-config
+    volume:
+      size: 2Gi
