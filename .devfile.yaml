@@ -19,14 +19,3 @@ components:
       cpuLimit: "4"
       cpuRequest: "1"
       mountSources: true
-      volumeMounts:
-        - name: workspace-config
-          path: "/home/user/.config"
-        - name: workspace-local
-          path: "/home/user/.local"
-  - name: workspace-config
-    volume:
-      size: 1Gi
-  - name: workspace-local
-    volume:
-      size: 1Gi
