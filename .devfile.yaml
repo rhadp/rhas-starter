@@ -21,7 +21,7 @@ components:
       mountSources: true
       volumeMounts:
         - name: workspace-config
-          path: "/home/user/.config"
+          path: "/home/user"
   - name: workspace-config
     volume:
       size: 2Gi
