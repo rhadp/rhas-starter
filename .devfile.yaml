@@ -21,7 +21,8 @@ commands:
     exec:
       component: workspace
       commandLine: |
-        /usr/local/bin/init-workspace
+        /venv/bin/init-workspace
+        echo "source /venv/bin/activate" >> /home/user/.bashrc 
 events:
   postStart:
     - init-workspace
