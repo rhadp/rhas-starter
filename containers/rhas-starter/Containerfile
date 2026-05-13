@@ -36,6 +36,10 @@ ENV PATH="/home/tooling/google-cloud-sdk/bin:$PATH"
 COPY scripts/jmp-login /usr/local/bin/jmp-login
 RUN chmod +x /usr/local/bin/jmp-login
 
+# init-workspace script
+COPY scripts/init-workspace /usr/local/bin/init-workspace
+RUN chmod +x /usr/local/bin/init-workspace
+
 # install this repository's version of jumpstarter
 ENV JUMPSTARTER_VERSION=develop \
 JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter

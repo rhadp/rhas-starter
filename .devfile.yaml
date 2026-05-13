@@ -8,9 +8,6 @@ metadata:
     - rhivos
     - autosd
 components:
-  #- name: runtime-pv
-  #  volume:
-  #    size: 2Gi
   - name: workspace
     container:
       image: ghcr.io/rhadp/rhas-starter:latest
@@ -19,3 +16,12 @@ components:
       cpuLimit: "4"
       cpuRequest: "1"
       mountSources: true
+commands:
+  - id: init-workspace
+    exec:
+      component: workspace
+      commandLine: |
+        /usr/local/bin/init-workspace
+events:
+  postStart:
+    - init-workspace
