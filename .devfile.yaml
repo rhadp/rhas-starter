@@ -21,7 +21,7 @@ commands:
     exec:
       component: workspace
       commandLine: |
-        /venv/bin/init-workspace
+        /usr/local/bin/init-workspace
 events:
   postStart:
     - init-workspace
