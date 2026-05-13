@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source /venv/bin/activate
+echo "alias python='uv run python'" >> /home/user/.bashrc
+echo "alias pip='uv pip'" >> /home/user/.bashrc
+echo "source /venv/bin/activate" >> /home/user/.bashrc

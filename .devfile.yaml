@@ -22,7 +22,6 @@ commands:
       component: workspace
       commandLine: |
         /venv/bin/init-workspace
-        echo "source /venv/bin/activate" >> /home/user/.bashrc 
 events:
   postStart:
     - init-workspace
