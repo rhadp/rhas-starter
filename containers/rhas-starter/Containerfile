@@ -2,8 +2,17 @@ FROM ghcr.io/rhadp/codespaces:latest
 
 USER root
 
+# install centos stream & fedora repos, other vars
 ENV CENTOS_RELEASE=9.0-36 \
+    APP_ROOT=/home/tooling \
     ARCH=${TARGETARCH:-arm64}
+
+# jumpstarter version & repo
+ENV JUMPSTARTER_VERSION=develop \
+JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
+
+# gcloud cli path
+ENV PATH="/home/tooling/google-cloud-sdk/bin:$PATH"
 
 # Install Claude Code, using direct binary download instead of the install.sh script to avoid OOM-killing
 # the binary's post-install setup step in memory-constrained container builds.
@@ -30,30 +39,13 @@ RUN if [ "$ARCH" = "arm64" ]; then \
     /home/tooling/google-cloud-sdk/install.sh --quiet --usage-reporting=false --command-completion=false --path-update=false && \
     rm -f /tmp/google-cloud-sdk.tar.gz
 
-ENV PATH="/home/tooling/google-cloud-sdk/bin:$PATH"
-
-# jmp-login script
-COPY scripts/jmp-login /usr/local/bin/jmp-login
-RUN chmod +x /usr/local/bin/jmp-login
-
-# init-workspace script
-COPY scripts/init-workspace /usr/local/bin/init-workspace
-RUN chmod +x /usr/local/bin/init-workspace
-
-# install this repository's version of jumpstarter
-ENV JUMPSTARTER_VERSION=develop \
-JUMPSTARTER_REPO=https://github.com/mickume/jumpstarter
-
 # install jumpstarter & other python dependencies
 COPY requirements.txt /tmp/requirements.txt
 
 # install the patched version of jumpstarter & other python dependencies
 RUN uv pip install "git+${JUMPSTARTER_REPO}@${JUMPSTARTER_VERSION}#subdirectory=python/packages/jumpstarter-all" && \
-uv pip install -r /tmp/requirements.txt && \
-rm -rf /tmp/requirements.txt && \
-echo "alias python='uv run python'" >> /home/user/.bashrc && \
-echo "alias pip='uv pip'" >> /home/user/.bashrc && \
-echo "source /venv/bin/activate" >> /home/user/.bashrc 
+    uv pip install -r /tmp/requirements.txt && \
+    rm -rf /tmp/requirements.txt
 
 # A last pass to make sure that an arbitrary user can write in $HOME
 RUN chgrp -R 0 /home && chmod -R g=u /home
