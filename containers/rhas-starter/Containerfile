@@ -39,12 +39,11 @@ RUN if [ "$ARCH" = "arm64" ]; then \
     /home/tooling/google-cloud-sdk/install.sh --quiet --usage-reporting=false --command-completion=false --path-update=false && \
     rm -f /tmp/google-cloud-sdk.tar.gz
 
-# create the gcloud config directory
-RUN mkdir -p /home/user/.config/gcloud/configurations && \
-    mkdir -p /home/user/.config/containers 
-    
-RUN touch /home/user/.config/gcloud/configurations/config_default && \
-    chmod 600 /home/user/.config/gcloud/configurations/config_default
+# create the various config directories
+RUN mkdir -p /home/tooling/.config/gcloud/configurations && \
+    mkdir -p /home/tooling/.config/containers/certs.d && \
+    mkdir -p /home/user/.config/gcloud/configurations && \
+    mkdir -p /home/user/.config/containers/certs.d
 
 # install jumpstarter & other python dependencies
 COPY requirements.txt /tmp/requirements.txt
