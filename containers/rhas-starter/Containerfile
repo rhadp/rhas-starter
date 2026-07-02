@@ -2,10 +2,14 @@ FROM ghcr.io/rhadp/codespaces:latest
 
 USER root
 
+ARG TARGETARCH
+
 # install centos stream & fedora repos, other vars
 ENV CENTOS_RELEASE=9.0-36 \
     APP_ROOT=/home/tooling \
     ARCH=${TARGETARCH:-arm64}
+
+RUN echo "Building for TARGETARCH=${TARGETARCH} (release arch: ${ARCH})"
 
 # jumpstarter version & repo
 ENV JUMPSTARTER_VERSION=develop \
