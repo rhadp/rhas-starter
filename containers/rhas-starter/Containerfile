@@ -41,7 +41,9 @@ RUN if [ "$ARCH" = "arm64" ]; then \
 
 # create the gcloud config directory
 RUN mkdir -p /home/user/.config/gcloud/configurations && \
-    touch /home/user/.config/gcloud/configurations/config_default && \
+    mkdir -p /home/user/.config/containers 
+    
+RUN touch /home/user/.config/gcloud/configurations/config_default && \
     chmod 600 /home/user/.config/gcloud/configurations/config_default
 
 # install jumpstarter & other python dependencies
